@@ -129,15 +129,15 @@ async function shortenURL(url) {
 }
 
 function buildAmazonUrl(asin) {
-  return `https://www.amazon.${amazon_tld}/dp/${asin}?tag=${amazon_tag}`;
+  return `https://www.amazon.${amazon_tld}/dp/${asin.trim()}?tag=${amazon_tag}`.replace(/\s+/g, '');
 }
 
 function buildRawAmazonUrl(element) {
   const url = element.expanded_url ? element.expanded_url : element.fullURL;
-  const strucutredURL = new URL(url);
-  strucutredURL.searchParams.set("tag", amazon_tag);
+  const structuredURL = new URL(url.trim());
+  structuredURL.searchParams.set("tag", amazon_tag);
 
-  return strucutredURL.toString();
+  return structuredURL.toString().replace(/\s+/g, '');
 }
 
 async function getAmazonURL(element) {
@@ -145,7 +145,11 @@ async function getAmazonURL(element) {
     element.asin != null
       ? buildAmazonUrl(element.asin)
       : buildRawAmazonUrl(element);
-  return shorten_links ? await shortenURL(url) : url;
+  return shorten_links ? await shortenURL(url.replace(/\s+/g, '')) : url.replace(/\s+/g, '');
+}
+
+function removeSpaces(url) {
+  return url.replace(/\s+/g, '');
 }
 
 function buildMention(user) {
@@ -161,7 +165,7 @@ async function buildMessage(chat, message, replacements, user) {
       const sponsored_url = await getAmazonURL(element);
       affiliate_message = affiliate_message.replace(
         element.fullURL,
-        sponsored_url
+        removeSpaces(sponsored_url)
       );
     }
 
@@ -282,7 +286,7 @@ function replaceTextLinks(msg) {
     return msg.text;
   }
 }
-// Aggiungi questa nuova espressione regolare per catturare il formato amzn.eu
+// capture the amzn.eu format
 const amznEuRegex = /https?:\/\/(www\.)?amzn\.eu\/d\/([A-Za-z0-9]+)/gi;
 
 bot.on("message", async (msg) => {
@@ -366,7 +370,7 @@ bot.on("message", async (msg) => {
         }
       }
 
-      // Aggiungi questo blocco dopo gli altri controlli di regex
+      // Handle amzn.eu short links in the message
     amznEuRegex.lastIndex = 0;
     while ((match = amznEuRegex.exec(msg.text)) !== null) {
       const shortURL = match[0];
