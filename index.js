@@ -282,6 +282,8 @@ function replaceTextLinks(msg) {
     return msg.text;
   }
 }
+// Aggiungi questa nuova espressione regolare per catturare il formato amzn.eu
+const amznEuRegex = /https?:\/\/(www\.)?amzn\.eu\/d\/([A-Za-z0-9]+)/gi;
 
 bot.on("message", async (msg) => {
   try {
@@ -363,6 +365,28 @@ bot.on("message", async (msg) => {
           }
         }
       }
+
+      // Aggiungi questo blocco dopo gli altri controlli di regex
+    amznEuRegex.lastIndex = 0;
+    while ((match = amznEuRegex.exec(msg.text)) !== null) {
+      const shortURL = match[0];
+      const url = await getLongUrl(shortURL);
+
+      if (url != null) {
+        if (raw_links) {
+          replacements.push({
+            asin: null,
+            expanded_url: url.fullURL,
+            fullURL: shortURL,
+          });
+        } else {
+          replacements.push({
+            asin: getASINFromFullUrl(url.fullURL),
+            fullURL: shortURL,
+          });
+        }
+      }
+    }
 
       if (replacements.length > 0) {
         const text = await buildMessage(
